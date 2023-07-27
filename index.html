@@ -18,8 +18,99 @@
 
 
 
+<?php
+
+//---------------Karakter Düzelt Fonksiyonu---------------//
+/*
+karakterDuzelt adında bir fonksiyon hazırlıyoruz. Bu fonksiyonu türkçe karakter
+ler küçük yazıldığında otomatik olarak büyük hale çevirecek. Doğrulama isteğini
+bu şekilde göndereceğiz.
+*/
+function karakterDuzelt($yazi){
+     $ara=array("ç","i","ı","ğ","ö","ş","ü");
+     $degistir=array("Ç","İ","I","Ğ","Ö","Ş","Ü");
+     $yazi=str_replace($ara,$degistir,$yazi);
+     $yazi=strtoupper($yazi);
+     return $yazi;
+}
 
 
-  <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8b253dfea2ab4077af8c6f58422dfbfd1689876627854" integrity="sha512-bjgnUKX4azu3dLTVtie9u6TKqgx29RBwfj3QXYt5EKfWM/9hPSAI/4qcV5NACjwAo8UtTeWefx6Zq5PHcMm7Tg==" data-cf-beacon='{"rayId":"7ed424cf6d88da0e","version":"2023.7.0","r":1,"token":"18e8795e2bf64ba5b6ed1296417ce89f","si":100}' crossorigin="anonymous"></script>
-</body>
+// ----------------TC Kimlik No Doğrulama Kısmı----------------//
+
+/*
+Bilgiler doldurulup Formu Gönder butonuna tıklanana kadar işlem başlamaması için
+isset() fonksiyonu kullanıyoruz.
+*/
+if (isset($_POST['tcKimlikSorgula'])) {
+
+/*
+Değerler, formu gönder butonu ile birlikte POST edildi ve yakalayıp ilgili değiş-
+kenlere atadık.
+*/
+$tcKimlikNo=$_POST['TC'];
+/*
+Ad ve Soyad için türkçe küçük karakter yazılırsa bunu otomatik olarak büyük hale
+çeviriyoruz (karakterDuzeltme) ve her ihtimale karşın sağında ya da solunda
+boşluk varsa o kısmı kırpıyoruz(trim()).
+*/
+$ad = karakterDuzelt(trim($_POST["AD"]));
+$soyad= karakterDuzelt(trim($_POST['SOYAD']));
+
+$dogumYili=$_POST['DOGUMYILI'];
+
+
+
+/*
+Bundan sonraki kodları TRY CATCH blogunda yazdıracağız ki herhangi bir hata ol-
+duğunda bunu yakalayabilelim.
+*/
+try {
+
+/*
+Değişkenlere atadığımız form verilerini $veriler adında bir diziye aktarıyoruz.
+*/
+  $veriler = array(
+    'TCKimlikNo' => $tcKimlikNo,
+    'Ad' => $ad,
+    'Soyad' => $soyad,
+    'DogumYili' => $dogumYili
+  );
+
+/*
+OOP ile SOAP oluşturarak $baglan adında bir değişkene atıyoruz. Bu sayede
+tckimlik.nvi.gov.tr üzerinden elimizdeki verileri kullanarak sorgulama yapabile-
+ceğiz. Eğer php.ini de bulunan extensions'da soap aktif değilse başındaki ";"
+noktalı virgülü kaldırıp servisi yeniden başlatmanız gerekecektir.
+*/
+  $baglan = new SoapClient("https://tckimlik.nvi.gov.tr/Service/KPSPublic.asmx?WSDL");
+
+  $sonuc = $baglan -> TCKimlikNoDogrula ($veriler);
+
+// Forma girilen bilgilerin hepsi doğruysa aşağıdaki mesaj
+  if ($sonuc->TCKimlikNoDogrulaResult) {
+    echo "Girmiş olduğunuz kimlik bilgileri doğrudur.";
+  }
+
+
+// Bir yada bir kaçtanesi yanlış ise aşağıdaki mesaj son kullanıcıya gösterilir.
+  else {
+    echo "Girmiş olduğunuz kimlik bilgileri yanlıştır.";
+  }
+
+// Eğer hata oluşursa ekrana yazdırıyoruz.
+} catch (\Exception $e) {
+ echo $exc->getMessage();
+}
+}
+
+else {
+  // code...
+}
+
+
+
+     ?>
+
+
+  </body>
 </html>
